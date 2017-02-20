@@ -66,17 +66,6 @@ class ServiceBalancerJob
   # @return [Boolean]
   def should_balance_service?(service)
     return false unless service.running?
-
-    if service.stateless?
-      should_balance_stateless_service?(service)
-    elsif service.stateful?
-      should_balance_stateful_service?(service)
-    end
-  end
-
-  # @param [GridService] service
-  # @return [Boolean]
-  def should_balance_stateless_service?(service)
     return false if pending_deploys?(service)
     return false if active_deploys?(service)
     return false if active_deploys_within_stack?(service)
@@ -89,12 +78,6 @@ class ServiceBalancerJob
       return true
     end
 
-    false
-  end
-
-  # @param [GridService] service
-  # @return [Boolean]
-  def should_balance_stateful_service?(service)
     false
   end
 
@@ -145,14 +128,14 @@ class ServiceBalancerJob
   # @return [Boolean]
   def all_instances_exist?(service)
     desired_count = desired_count_for_service(service)
-    running_count = service.containers.where(:'state.running' => true).count
+    running_count = service.grid_service_instances.count
 
     return true if running_count == desired_count
 
-    offline_count = service.containers.unscoped.where(
-      :'state.running' => true,
-      :deleted_at.gt => grace_period_for_service(service).ago
-    ).count
+    offline_count = 0
+    service.grid_service_instances.includes(:host_node).select { |i|
+      i.host_node && i.host_node.connected?
+    }.size
     return false if offline_count == 0
 
     (running_count + offline_count) >= desired_count
@@ -182,7 +165,6 @@ class ServiceBalancerJob
 
   # @param [GridService] service
   def balance_service(service)
-    info "rebalancing service: #{service.to_path}"
     GridServiceDeploy.create(grid_service: service)
   end
 end

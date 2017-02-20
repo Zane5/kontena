@@ -2,7 +2,9 @@ module Kontena
   module Models
     class ServicePod
 
-      attr_reader :service_id,
+      attr_reader :id,
+                  :desired_state,
+                  :service_id,
                   :service_name,
                   :instance_number,
                   :deploy_rev,
@@ -42,6 +44,8 @@ module Kontena
 
       # @param [Hash] attrs
       def initialize(attrs = {})
+        @id = attrs['id']
+        @desired_state = attrs['desired_state']
         @service_id = attrs['service_id']
         @service_name = attrs['service_name']
         @instance_number = attrs['instance_number'] || 1
@@ -92,6 +96,22 @@ module Kontena
       # @return [Boolean]
       def stateful?
         !self.stateless?
+      end
+
+      def running?
+        self.desired_state == 'running'
+      end
+
+      def stopped?
+        self.desired_state == 'stopped'
+      end
+
+      def terminated?
+        self.desired_state == 'terminated'
+      end
+
+      def mark_as_terminated
+        @desired_state = 'terminated'
       end
 
       # @return [String]

@@ -47,8 +47,8 @@ class GridScheduler
   # @return [Boolean]
   def should_reschedule_service?(service)
     return false if service.grid_service_deploys.where(started_at: nil).count > 0
-    
-    current_nodes = service.containers.map{|c| c.host_node}.delete_if{|n| n.nil?}.uniq.sort
+
+    current_nodes = service.grid_service_instances.map{|c| c.host_node}.delete_if{|n| n.nil?}.uniq.sort
     available_nodes = service.grid.host_nodes.connected.to_a
     return false if available_nodes.size == 0
 
@@ -56,7 +56,7 @@ class GridScheduler
     service_deployer = GridServiceDeployer.new(
       self.strategy(service.strategy), service_deploy, available_nodes
     )
-    if service_deployer.instance_count != service.containers.count
+    if service_deployer.instance_count != service.grid_service_instances.count
       return true
     end
 

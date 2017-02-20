@@ -76,20 +76,18 @@ describe ServiceBalancerJob, celluloid: true do
 
     context 'default' do
       it 'returns true if all instances exist' do
-        2.times{|i| service.containers.create!(name: "test-#{i}", state: {running: true}) }
+        2.times{|i| service.grid_service_instances.create!(instance_number: i, state: 'running') }
         expect(subject.all_instances_exist?(service)).to eq(true)
       end
 
       it 'returns false if not all instances are running' do
-        service.containers.create!(name: "test-1", state: {running: true})
-        service.containers.create!(name: "test-2", state: {running: false})
+        service.grid_service_instances.create(instance_number: 1, state: 'running')
+        service.grid_service_instances.create(instance_number: 2, state: 'stopped')
         expect(subject.all_instances_exist?(service)).to eq(false)
       end
 
       it 'returns false if service has too many instances' do
-        service.containers.create!(name: "test-1", state: {running: true})
-        service.containers.create!(name: "test-1", state: {running: true})
-        service.containers.create!(name: "test-2", state: {running: true})
+        3.times{|i| service.grid_service_instances.create!(instance_number: i, state: 'running') }
         expect(subject.all_instances_exist?(service)).to eq(false)
       end
 
@@ -118,7 +116,7 @@ describe ServiceBalancerJob, celluloid: true do
       end
 
       it 'returns true if all instances exist' do
-        2.times{|i| service.containers.create!(name: "test-#{i}", state: {running: true}) }
+        2.times{|i| service.grid_service_instances.create!(instance_number: i, state: 'running') }
         expect(subject.all_instances_exist?(service)).to eq(true)
       end
 

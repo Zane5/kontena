@@ -1,6 +1,6 @@
 require_relative 'rpc/container_handler'
 require_relative 'rpc/node_handler'
-require_relative 'rpc/node_service_handler'
+require_relative 'rpc/node_service_pod_handler'
 
 class RpcServer
   include Celluloid
@@ -9,7 +9,7 @@ class RpcServer
   HANDLERS = {
     'containers' => Rpc::ContainerHandler,
     'nodes' => Rpc::NodeHandler,
-    'node_services' => Rpc::NodeServiceHandler
+    'node_service_pods' => Rpc::NodeServicePodHandler
   }
 
   class Error < StandardError

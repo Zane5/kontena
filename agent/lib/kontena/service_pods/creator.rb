@@ -159,6 +159,7 @@ module Kontena
       # @param [Docker::Container] service_container
       # @return [Boolean]
       def service_uptodate?(service_container)
+        return false unless service_container.running?
         return false if recreate_service_container?(service_container)
         return false if service_container.config['Image'] != service_pod.image_name
         return false if container_outdated?(service_container)

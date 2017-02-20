@@ -1,6 +1,7 @@
 require 'net/http'
 require 'vmstat'
 
+require_relative '../models/node'
 require_relative '../helpers/node_helper'
 require_relative '../helpers/iface_helper'
 require_relative '../helpers/rpc_helper'
@@ -23,8 +24,6 @@ module Kontena::Workers
       @statsd = nil
       @stats_since = Time.now
       @container_seconds = 0
-      subscribe('websocket:connected', :on_websocket_connected)
-      subscribe('agent:node_info', :on_node_info)
       subscribe('container:event', :on_container_event)
       info 'initialized'
       async.start if autostart
@@ -32,28 +31,52 @@ module Kontena::Workers
 
     def start
       loop do
+        node = self.node
+        on_node_info(node)
         sleep PUBLISH_INTERVAL
         self.publish_node_info
         self.publish_node_stats
       end
     end
 
-    # @param [String] topic
-    # @param [Hash] data
-    def on_websocket_connected(topic, data)
-      self.publish_node_info
-      self.publish_node_stats
+    # @return [Node, NilClass]
+    def fetch_node
+      request = rpc_client.request('/nodes/get', docker_info['ID'])
+      info = request.value
+      if info
+        node = Node.new(info)
+        node
+      end
+    rescue => exc
+      error exc.message
+      nil
     end
 
-    # @param [String] topic
-    # @param [Hash] info
-    def on_node_info(topic, info)
-      statsd_conf = info.dig('grid', 'stats', 'statsd')
-      if statsd_conf
+    # @return [Node]
+    def node
+      if @node.nil?
+        while @node.nil?
+          @node = fetch_node
+        end
+      end
+      @node
+    end
+
+    # @param [Hash] node
+    def on_node_info(node)
+      if @node.nil? || node.statsd_conf != node.statsd_conf
+        configure_statsd(node)
+      end
+    end
+
+    # @param [Hash] node
+    def configure_statsd(node)
+      statsd_conf = node.statsd_conf
+      if statsd_conf && statsd_conf['server']
         info "exporting stats via statsd to udp://#{statsd_conf['server']}:#{statsd_conf['port']}"
         @statsd = Statsd.new(
           statsd_conf['server'], statsd_conf['port'].to_i || 8125
-        ).tap{|sd| sd.namespace = info.dig('grid', 'name')}
+        ).tap{ |sd| sd.namespace = node.grid['name'] }
       else
         @statsd = nil
       end

@@ -54,6 +54,7 @@ class GridServiceDeployer
 
     deploy_futures = []
     total_instances = self.instance_count
+    self.grid_service.grid_service_instances.where(:instance_number.gt => total_instances).destroy
     total_instances.times do |i|
       instance_number = i + 1
       unless self.grid_service.reload.deploying?
@@ -63,8 +64,6 @@ class GridServiceDeployer
       sleep 0.1
     end
     deploy_futures.select{|f| !f.ready?}.each{|f| f.value }
-
-    self.cleanup_deploy(total_instances, deploy_rev)
 
     self.grid_service_deploy.set(finished_at: Time.now.utc, :deploy_state => :success)
     info "service #{self.grid_service.to_path} has been deployed"
@@ -118,38 +117,6 @@ class GridServiceDeployer
     end
     if deploy_futures.any?{|f| f.ready? && f.value == false}
       raise DeployError.new("halting deploy of #{self.grid_service.to_path}, one or more instances failed")
-    end
-  end
-
-  # @param [String] deploy_rev
-  def cleanup_deploy(total_instances, deploy_rev)
-    cleanup_futures = []
-    self.grid_service.containers.where(:deploy_rev => {:$ne => deploy_rev}).each do |container|
-      instance_number = container.name.match(/^.+-(\d+)$/)[1]
-      container.set(:deleted_at => Time.now.utc)
-
-      instance_deployer = GridServiceInstanceDeployer.new(self.grid_service)
-      # just to be on a safe side.. we don't want to destroy anything accidentally
-      if instance_number.to_i <= total_instances
-        deployed_container = instance_deployer.find_service_instance_container(instance_number, deploy_rev)
-        if deployed_container.nil?
-          next
-        elsif deployed_container.host_node_id == container.host_node_id
-          next
-        end
-      end
-
-      cleanup_futures << Celluloid::Future.new {
-        info "removing service instance #{container.to_path}"
-        instance_deployer.terminate_service_instance(instance_number, container.host_node)
-      }
-      pending_cleanups = cleanup_futures.select{|f| !f.ready?}
-      if pending_cleanups.size > self.nodes.size
-        pending_cleanups[0].value rescue nil
-      end
-    end
-    self.grid_service.containers.unscoped.where(:container_id => nil, :deploy_rev => {:$ne => deploy_rev}).each do |container|
-      container.destroy
     end
   end
 

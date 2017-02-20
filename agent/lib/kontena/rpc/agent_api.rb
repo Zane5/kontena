@@ -9,12 +9,6 @@ module Kontena
         {}
       end
 
-      # @param [Hash] data
-      def node_info(data)
-        Celluloid::Notifications.publish('agent:node_info', data)
-        {}
-      end
-
       private
 
       # @param [String] version

@@ -18,7 +18,15 @@ module GridServices
     end
 
     def execute
-      worker(:grid_service_remove).async.perform(self.grid_service.id)
+      nodes = self.grid_service.grid_service_instances.map{ |i| i.host_node }
+      self.grid_service.destroy
+      nodes.each do |node|
+        notify_node(node) if node
+      end
+    end
+
+    def notify_node(node)
+      RpcClient.new(node.node_id).notify('/service_pods/notify_update', 'terminate')
     end
   end
 end

@@ -19,7 +19,6 @@ module Agent
         prev_seen_at = node.last_seen_at
         self.update_node
         self.send_master_info
-        self.send_node_info
         self.reschedule_services(prev_seen_at)
       rescue => exc
         puts exc.message
@@ -35,18 +34,8 @@ module Agent
       worker(:grid_scheduler).async.later(30, grid.id)
     end
 
-    def send_node_info
-      rpc_client.notify('/agent/node_info', node_info)
-    end
-
     def send_master_info
       rpc_client.notify('/agent/master_info', {version: Server::VERSION})
-    end
-
-    # @return [Hash]
-    def node_info
-      template = Tilt.new('app/views/v1/host_nodes/_host_node.json.jbuilder')
-      JSON.parse(template.render(nil, node: node))
     end
 
     private

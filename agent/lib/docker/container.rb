@@ -118,6 +118,11 @@ module Docker
       self.labels['io.kontena.service.instance_number'].to_i
     end
 
+    # @return [Integer]
+    def service_revision
+      self.labels['io.kontena.container.service_revision'].to_i
+    end
+
     # @return [Hash]
     def env_hash
       if @env_hash.nil?
