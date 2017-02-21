@@ -10,10 +10,12 @@ module Rpc
     # @return [Array<Hash>]
     def list(id)
       node = @grid.host_nodes.find_by(node_id: id)
-      return [] unless node
-      node.grid_service_instances.includes(:grid_service).map { |i|
+      return { error: 'Node not found' } unless node
+      service_pods = node.grid_service_instances.includes(:grid_service).map { |i|
         ServicePodSerializer.new(i).to_hash
       }
+
+      { service_pods: service_pods }
     end
 
     def set_state(id, pod)
