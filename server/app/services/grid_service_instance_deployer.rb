@@ -10,10 +10,9 @@ class GridServiceInstanceDeployer
   # @param [HostNode] node
   # @param [Integer] instance_number
   # @param [String] deploy_rev
-  # @param [Hash, NilClass] creds
   # @return [Boolean]
-  def deploy(node, instance_number, deploy_rev, creds = nil)
-    service_instance = create_service_instance(node, instance_number, deploy_rev, creds)
+  def deploy(node, instance_number, deploy_rev)
+    service_instance = create_service_instance(node, instance_number, deploy_rev)
     notify_node(node)
     wait_for_service_to_start(service_instance)
     true
@@ -36,9 +35,8 @@ class GridServiceInstanceDeployer
   # @param [HostNode] node
   # @param [String] instance_number
   # @param [String] deploy_rev
-  # @param [Hash, NilClass] creds
   # @return [GridServiceInstance]
-  def create_service_instance(node, instance_number, deploy_rev, creds)
+  def create_service_instance(node, instance_number, deploy_rev)
     i = GridServiceInstance.where(grid_service: self.grid_service, instance_number: instance_number).first
     unless i
       i = GridServiceInstance.create!(
