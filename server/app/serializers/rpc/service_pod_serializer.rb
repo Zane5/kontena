@@ -1,6 +1,8 @@
 module Rpc
   class ServicePodSerializer
 
+    DEFAULT_REGISTRY = 'index.docker.io'
+
     attr_reader :service_instance, :service
 
     def initialize(service_instance)
@@ -18,7 +20,7 @@ module Rpc
         updated_at: service.updated_at.to_s,
         instance_number: service_instance.instance_number,
         image_name: service.image_name,
-        #image_credentials: creds,
+        image_credentials: image_credentials,
         deploy_rev: service_instance.deploy_rev,
         stateful: service.stateful,
         user: service.user,
@@ -90,7 +92,7 @@ module Rpc
         labels['io.kontena.load_balancer.internal_port'] = internal_port
         labels['io.kontena.load_balancer.mode'] = mode
       end
-      if service.health_check
+      if service.health_check && service.health_check.protocol
         labels['io.kontena.health_check.uri'] = service.health_check.uri
         labels['io.kontena.health_check.protocol'] = service.health_check.protocol
         labels['io.kontena.health_check.interval'] = service.health_check.interval.to_s
@@ -139,6 +141,27 @@ module Rpc
         "#{service.grid.name}.kontena.local"
       else
         "#{service.stack.name}.#{service.grid.name}.kontena.local"
+      end
+    end
+
+    # @return [Hash,NilClass]
+    def image_credentials
+      registry = service.grid.registries.find_by(name: registry_name)
+      if registry
+        registry.to_creds
+      end
+    end
+
+    # @return [String]
+    def registry_name
+      image_name = service.image_name.to_s
+      return DEFAULT_REGISTRY unless image_name.include?('/')
+
+      name = image_name.to_s.split('/')[0]
+      if name.match(/(\.|:)/)
+        name
+      else
+        DEFAULT_REGISTRY
       end
     end
   end

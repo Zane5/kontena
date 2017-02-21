@@ -7,8 +7,6 @@ class GridServiceDeployer
 
   class DeployError < StandardError; end
 
-  DEFAULT_REGISTRY = 'index.docker.io'
-
   attr_reader :grid_service_deploy,
               :grid_service,
               :nodes,
@@ -46,7 +44,6 @@ class GridServiceDeployer
   def deploy
     info "starting to deploy #{self.grid_service.to_path}"
     ping_subscription = self.subscribe_to_ping
-    creds = self.creds_for_registry
     self.grid_service.set_state('deploying')
     self.grid_service_deploy.set(:deploy_state => :ongoing)
     deploy_rev = Time.now.utc.to_s
@@ -60,7 +57,7 @@ class GridServiceDeployer
       unless self.grid_service.reload.deploying?
         raise "halting deploy of #{self.grid_service.to_path}, desired state has changed"
       end
-      self.deploy_service_instance(total_instances, deploy_futures, instance_number, deploy_rev, creds)
+      self.deploy_service_instance(total_instances, deploy_futures, instance_number, deploy_rev)
       sleep 0.1
     end
     deploy_futures.select{|f| !f.ready?}.each{|f| f.value }
@@ -93,9 +90,8 @@ class GridServiceDeployer
   # @param [Array<Celluloid::Future>] deploy_futures
   # @param [Integer] instance_number
   # @param [String] deploy_rev
-  # @param [Hash, NilClass] creds
   # @raise [DeployError]
-  def deploy_service_instance(total_instances, deploy_futures, instance_number, deploy_rev, creds)
+  def deploy_service_instance(total_instances, deploy_futures, instance_number, deploy_rev)
     begin
       node = self.scheduler.select_node(
           self.grid_service, instance_number, self.nodes
@@ -107,7 +103,7 @@ class GridServiceDeployer
     info "deploying service instance #{self.grid_service.to_path}-#{instance_number} to node #{node.name}"
     deploy_futures << Celluloid::Future.new {
       instance_deployer = GridServiceInstanceDeployer.new(self.grid_service)
-      instance_deployer.deploy(node, instance_number, deploy_rev, creds)
+      instance_deployer.deploy(node, instance_number, deploy_rev)
     }
     pending_deploys = deploy_futures.select{|f| !f.ready?}
     if pending_deploys.size >= (total_instances * self.min_health).floor || pending_deploys.size >= 20
@@ -152,26 +148,5 @@ class GridServiceDeployer
   # @return [Float]
   def min_health
     1.0 - (self.grid_service.deploy_opts.min_health || 0.8).to_f
-  end
-
-  # @return [Hash,NilClass]
-  def creds_for_registry
-    registry = self.grid_service.grid.registries.find_by(name: self.registry_name)
-    if registry
-      registry.to_creds
-    end
-  end
-
-  # @return [String]
-  def registry_name
-    image_name = self.grid_service.image_name.to_s
-    return DEFAULT_REGISTRY unless image_name.include?('/')
-
-    name = image_name.to_s.split('/')[0]
-    if name.match(/(\.|:)/)
-      name
-    else
-      DEFAULT_REGISTRY
-    end
   end
 end
