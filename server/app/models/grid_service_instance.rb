@@ -11,4 +11,5 @@ class GridServiceInstance
   belongs_to :host_node
 
   index({ grid_service_id: 1 })
+  index({ host_node_id: 1 })
 end

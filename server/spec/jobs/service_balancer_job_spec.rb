@@ -21,7 +21,7 @@ describe ServiceBalancerJob, celluloid: true do
       end
 
       it 'returns false by default' do
-        expect(subject.should_balance_service?(service)).to be_falsey
+        expect(subject.should_balance_service?(service)).to be_truthy
       end
     end
 

@@ -132,9 +132,8 @@ class ServiceBalancerJob
 
     return true if running_count == desired_count
 
-    offline_count = 0
-    service.grid_service_instances.includes(:host_node).select { |i|
-      i.host_node && i.host_node.connected?
+    offline_count = service.grid_service_instances.includes(:host_node).select { |i|
+      i.host_node && !i.host_node.connected?
     }.size
     return false if offline_count == 0
 
