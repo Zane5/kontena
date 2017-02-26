@@ -10,6 +10,7 @@ module Kontena::Workers
 
     attr_reader :workers
 
+    trap_exit :on_worker_exit
     finalizer :finalize
 
     def initialize(autostart = true)
@@ -58,12 +59,7 @@ module Kontena::Workers
 
     def populate_workers_from_docker
       info "populating service pod workers from docker"
-      filters = JSON.dump({
-        label: [
-            "io.kontena.container.type=container",
-        ]
-      })
-      Docker::Container.all(all: true, filters: filters).each do |c|
+      fetch_containers.each do |c|
         service_pod = Kontena::Models::ServicePod.new(
           'id' => "#{c.service_id}/#{c.instance_number}",
           'service_id' => c.service_id,
@@ -72,6 +68,16 @@ module Kontena::Workers
         )
         ensure_service_worker(service_pod)
       end
+    end
+
+    # @return [Array<Docker::Container>]
+    def fetch_containers
+      filters = JSON.dump({
+        label: [
+            "io.kontena.container.type=container",
+        ]
+      })
+      Docker::Container.all(all: true, filters: filters)
     end
 
     # @param [Array<String>] current_ids
@@ -92,7 +98,9 @@ module Kontena::Workers
       retries = 0
       begin
         unless workers[service_pod.id]
-          workers[service_pod.id] = ServicePodWorker.new(node)
+          worker = ServicePodWorker.new(node)
+          self.link worker
+          workers[service_pod.id] = worker
         end
         workers[service_pod.id].async.update(service_pod)
       rescue Celluloid::DeadActorError => exc
@@ -103,6 +111,10 @@ module Kontena::Workers
           error exc.message
         end
       end
+    end
+
+    def on_worker_exit(worker, reason)
+      workers.delete_if { |k, w| w == worker }
     end
 
     def finalize

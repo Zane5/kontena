@@ -50,9 +50,13 @@ module Kontena::Workers
         elsif service_pod.terminated?
           info "terminating #{service_pod.name}"
           ensure_terminated if service_container
-          self.terminate
         end
       }
+
+      if service_pod.terminated?
+        self.terminate
+        return
+      end
 
       state = current_state
       sync_state_to_master(state) if state != prev_state
@@ -95,7 +99,7 @@ module Kontena::Workers
         instance_number: service_pod.instance_number,
         state: current_state
       }
-      rpc_client.notification('/node_service_pods/set_state', [node.id, state])
+      rpc_client.async.notification('/node_service_pods/set_state', [node.id, state])
       @prev_state = current_state
     end
   end

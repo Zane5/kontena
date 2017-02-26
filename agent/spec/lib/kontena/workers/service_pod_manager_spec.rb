@@ -12,12 +12,15 @@ describe Kontena::Workers::ServicePodManager do
     )
   end
 
-  before(:each) { Celluloid.boot }
+  before(:each) do
+    Celluloid.boot
+    mock_rpc_client
+    allow(subject.wrapped_object).to receive(:node).and_return(node)
+  end
   after(:each) { Celluloid.shutdown }
 
   describe '#initialize' do
     it 'starts to listen service_pod:update events' do
-      subject = described_class.new(false)
       expect(subject.wrapped_object).to receive(:on_update_notify).once
       Celluloid::Notifications.publish('service_pod:update', 'foo')
       sleep 0.1
@@ -26,7 +29,6 @@ describe Kontena::Workers::ServicePodManager do
 
   describe '#populate_workers_from_master' do
     before(:each) do
-      mock_rpc_client
       allow(subject.wrapped_object).to receive(:node).and_return(node)
       allow(subject.wrapped_object).to receive(:ensure_service_worker)
     end
@@ -79,15 +81,10 @@ describe Kontena::Workers::ServicePodManager do
   end
 
   describe '#populate_workers_from_docker' do
-    let(:connection) { spy(:docker_connection) }
-    before(:each) do
-      allow(Docker).to receive(:connection).and_return(connection)
-    end
-
     it 'calls ensure_service_worker for each container' do
-      allow(connection).to receive(:get).with('/containers/json', anything).and_return([
-        {'id' => 'aaa'},
-        {'id' => 'bbb'}
+      allow(subject.wrapped_object).to receive(:fetch_containers).and_return([
+        double(:a, id: 'a', service_id: 'foo', instance_number: 2),
+        double(:b, id: 'b', service_id: 'bar', instance_number: 1)
       ])
       expect(subject.wrapped_object).to receive(:ensure_service_worker).twice
       subject.populate_workers_from_docker

@@ -7,6 +7,9 @@ describe Kontena::Workers::ServicePodWorker do
   let(:service_pod) { Kontena::Models::ServicePod.new('id' => 'foo/2', 'instance_number' => 2) }
   let(:subject) { described_class.new(node, service_pod) }
 
+  before(:each) { Celluloid.boot }
+  after(:each) { Celluloid.shutdown }
+
   describe '#ensure_desired_state' do
     before(:each) do
       mock_rpc_client
