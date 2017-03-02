@@ -8,9 +8,8 @@ module GridServices
       prev_state = self.grid_service.state
       Celluloid::Future.new {
         begin
-          self.grid_service.set_state('starting')
-          self.start_service_instances
           self.grid_service.set_state('running')
+          self.start_service_instances
         rescue => exc
           self.grid_service.set_state(prev_state)
           raise exc

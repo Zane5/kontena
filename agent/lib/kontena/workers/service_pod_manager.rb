@@ -15,6 +15,7 @@ module Kontena::Workers
 
     def initialize(autostart = true)
       @workers = {}
+      subscribe('agent:node_info', :on_node_info)
       subscribe('service_pod:update', :on_update_notify)
       async.start if autostart
     end
@@ -30,11 +31,18 @@ module Kontena::Workers
 
     # @return [Node]
     def node
-      if @node.nil?
+      while @node.nil?
         @node = Actor[:node_info_worker].node
+        sleep 0.1 if @node.nil?
       end
 
       @node
+    end
+
+    # @param [String] topic
+    # @param [Node] node
+    def on_node_info(topic, node)
+      @node = node
     end
 
     def on_update_notify(_, _)
@@ -95,7 +103,6 @@ module Kontena::Workers
 
     # @param [ServicePod] service_pod
     def ensure_service_worker(service_pod)
-      retries = 0
       begin
         unless workers[service_pod.id]
           worker = ServicePodWorker.new(node)
@@ -105,11 +112,6 @@ module Kontena::Workers
         workers[service_pod.id].async.update(service_pod)
       rescue Celluloid::DeadActorError => exc
         workers.delete(service_pod.id)
-        if retries == 1
-          retry
-        else
-          error exc.message
-        end
       end
     end
 

@@ -40,6 +40,10 @@ class RpcServer
       begin
         result = actor.send(method, *message[3])
         send_message(ws_client, [1, msg_id, nil, result])
+        unless actor.alive?
+          error "actor for handler #{handler} did die, removing it from cache"
+          @handlers[grid_id].delete(handler)
+        end
       rescue Celluloid::DeadActorError
         error "actor for handler #{handler} is dead, removing it from cache"
         @handlers[grid_id].delete(handler)

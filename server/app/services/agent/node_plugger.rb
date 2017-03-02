@@ -1,8 +1,8 @@
 require_relative '../grid_scheduler'
+require_relative '../../serializers/rpc/host_node_serializer'
 
 module Agent
   class NodePlugger
-    include Workers
 
     attr_reader :node, :grid
 
@@ -19,7 +19,7 @@ module Agent
         prev_seen_at = node.last_seen_at
         self.update_node
         self.send_master_info
-        self.reschedule_services(prev_seen_at)
+        self.send_node_info
       rescue => exc
         puts exc.message
       end
@@ -29,9 +29,8 @@ module Agent
       node.set(connected: true, last_seen_at: Time.now.utc)
     end
 
-    def reschedule_services(prev_seen_at)
-      return if !prev_seen_at.nil? && prev_seen_at > 2.minutes.ago.utc
-      worker(:grid_scheduler).async.later(30, grid.id)
+    def send_node_info
+      rpc_client.notify('/agent/node_info', Rpc::HostNodeSerializer.new(node).to_hash)
     end
 
     def send_master_info

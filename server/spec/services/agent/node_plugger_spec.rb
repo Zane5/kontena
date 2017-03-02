@@ -27,22 +27,5 @@ describe Agent::NodePlugger do
       expect(client).to receive(:notify).with('/agent/master_info', anything)
       subject.plugin!
     end
-
-    it 'reschedules grid if node has not seen before' do
-      expect(subject).to receive(:worker).with(:grid_scheduler).and_return(spy)
-      subject.plugin!
-    end
-
-    it 'reschedules grid if node has not seen within 2 minutes' do
-      node.set(:last_seen_at => (Time.now.utc - 3.minutes))
-      expect(subject).to receive(:worker).with(:grid_scheduler).and_return(spy)
-      subject.plugin!
-    end
-
-    it 'does not reschedule grid if node has seen within 2 minutes' do
-      node.set(:last_seen_at => (Time.now.utc - 1.minute - 59.seconds))
-      expect(subject).not_to receive(:worker).with(:grid_scheduler)
-      subject.plugin!
-    end
   end
 end

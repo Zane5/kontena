@@ -26,8 +26,9 @@ module Kontena::NetworkAdapters
       @started = false
 
       info 'initialized'
+      subscribe('agent:node_info', :on_node_info)
       subscribe('ipam:start', :on_ipam_start)
-      async.start if autostart
+      async.ensure_images if autostart
 
       @ipam_client = IpamClient.new
 
@@ -176,8 +177,10 @@ module Kontena::NetworkAdapters
       start(node)
     end
 
-    def on_ipam_start(topic, info)
-      ensure_default_pool(info['grid'])
+    # @param [String] topic
+    # @param [Node] node
+    def on_ipam_start(topic, node)
+      ensure_default_pool(node.grid)
       Celluloid::Notifications.publish('network:ready', nil)
     end
 
@@ -214,10 +217,8 @@ module Kontena::NetworkAdapters
       @default_pool = @ipam_client.reserve_pool(DEFAULT_NETWORK, grid_subnet.to_cidr, upper.to_cidr)
     end
 
-    def start
-      ensure_images
-      wait { images_exist? && Actor[:node_info_worker] && !starting? }
-      node = Actor[:node_info_worker].node
+    def start(node)
+      wait { images_exist? && !starting? }
 
       @starting = true
 

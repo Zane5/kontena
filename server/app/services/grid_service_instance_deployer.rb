@@ -43,7 +43,9 @@ class GridServiceInstanceDeployer
         host_node: node, grid_service: self.grid_service, instance_number: instance_number
       )
     end
-    i.set(host_node_id: node.id, deploy_rev: deploy_rev, desired_state: 'running')
+    set = { host_node_id: node.id, deploy_rev: deploy_rev, desired_state: 'running' }
+    set[:state] = 'initialized' if i.host_node != node
+    i.set(set)
 
     i
   rescue => exc

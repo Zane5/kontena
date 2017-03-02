@@ -62,7 +62,7 @@ describe Kontena::Workers::NodeInfoWorker do
         }
       )
       expect(subject.statsd).to be_nil
-      subject.on_node_info(node)
+      subject.on_node_info('agent:on_node_info', node)
       expect(subject.statsd).not_to be_nil
     end
 
@@ -73,7 +73,7 @@ describe Kontena::Workers::NodeInfoWorker do
         }
       )
       expect(subject.statsd).to be_nil
-      subject.on_node_info(node)
+      subject.on_node_info('agent:on_node_info', node)
       expect(subject.statsd).to be_nil
     end
   end

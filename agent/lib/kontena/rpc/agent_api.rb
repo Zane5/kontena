@@ -1,3 +1,5 @@
+require_relative '../models/node'
+
 module Kontena
   module Rpc
     class AgentApi
@@ -6,6 +8,13 @@ module Kontena
       def master_info(data)
         Celluloid::Notifications.publish('websocket:connected', {master: data})
         update_version(data['version']) if data['version']
+        {}
+      end
+
+      # @param [Hash] data
+      def node_info(data)
+        node = Node.new(data)
+        Celluloid::Notifications.publish('agent:node_info', node)
         {}
       end
 

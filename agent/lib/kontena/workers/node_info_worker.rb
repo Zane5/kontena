@@ -15,7 +15,7 @@ module Kontena::Workers
     include Kontena::Helpers::IfaceHelper
     include Kontena::Helpers::RpcHelper
 
-    attr_reader :statsd, :stats_since
+    attr_reader :statsd, :stats_since, :node
 
     PUBLISH_INTERVAL = 60
 
@@ -24,6 +24,7 @@ module Kontena::Workers
       @statsd = nil
       @stats_since = Time.now
       @container_seconds = 0
+      subscribe('agent:node_info', :on_node_info)
       subscribe('container:event', :on_container_event)
       info 'initialized'
       async.start if autostart
@@ -31,8 +32,6 @@ module Kontena::Workers
 
     def start
       loop do
-        node = self.node
-        on_node_info(node)
         sleep PUBLISH_INTERVAL
         self.publish_node_info
         self.publish_node_stats
@@ -52,21 +51,13 @@ module Kontena::Workers
       nil
     end
 
-    # @return [Node]
-    def node
-      if @node.nil?
-        while @node.nil?
-          @node = fetch_node
-        end
-      end
-      @node
-    end
-
+    # @param [String] topic
     # @param [Hash] node
-    def on_node_info(node)
-      if @node.nil? || node.statsd_conf != node.statsd_conf
+    def on_node_info(topic, node)
+      if @node.nil? || (@node  && @node.statsd_conf != node.statsd_conf)
         configure_statsd(node)
       end
+      @node = node
     end
 
     # @param [Hash] node

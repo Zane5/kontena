@@ -24,11 +24,6 @@ class GridServiceSchedulerWorker
       service_deploy.reload
       if service_deploy.grid_service.running? || service_deploy.grid_service.initialized?
         self.perform(service_deploy)
-      elsif service_deploy.grid_service.deploying?
-        info "delaying #{service_deploy.grid_service.to_path} deploy because there is another deploy in progress"
-        after(30) {
-          service_deploy.set(:started_at => nil)
-        }
       else
         service_deploy.destroy
       end
@@ -36,9 +31,14 @@ class GridServiceSchedulerWorker
   end
 
   def perform(service_deploy)
-    unless service_deploy.grid_service.deploying?
+    unless service_deploy.grid_service.deploying?(ignore: service_deploy.id)
       self.deployer(service_deploy).deploy
       self.deploy_dependant_services(service_deploy.grid_service)
+    else
+      info "delaying #{service_deploy.grid_service.to_path} deploy because there is another deploy in progress"
+      after(30) {
+        service_deploy.set(:started_at => nil)
+      }
     end
   end
 

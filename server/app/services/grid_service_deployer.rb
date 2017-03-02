@@ -43,8 +43,6 @@ class GridServiceDeployer
 
   def deploy
     info "starting to deploy #{self.grid_service.to_path}"
-    ping_subscription = self.subscribe_to_ping
-    self.grid_service.set_state('deploying')
     self.grid_service_deploy.set(:deploy_state => :ongoing)
     deploy_rev = Time.now.utc.to_s
     self.grid_service.set(:deployed_at => deploy_rev)
@@ -64,26 +62,24 @@ class GridServiceDeployer
 
     self.grid_service_deploy.set(finished_at: Time.now.utc, :deploy_state => :success)
     info "service #{self.grid_service.to_path} has been deployed"
-    self.grid_service.set_state('running')
 
     true
   rescue DeployError => exc
     error exc.message
-    self.grid_service_deploy.set(:deploy_state => :error, :reason => exc.message, :finished_at => Time.now.utc)
+    self.grid_service_deploy.set(:deploy_state => :error, :reason => exc.message)
     false
   rescue RpcClient::Error => exc
     error "Rpc error (#{self.grid_service.to_path}): #{exc.class.name} #{exc.message}"
     error exc.backtrace.join("\n") if exc.backtrace
-    self.grid_service_deploy.set(:deploy_state => :error, :reason => exc.message, :finished_at => Time.now.utc)
+    self.grid_service_deploy.set(:deploy_state => :error, :reason => exc.message)
     false
   rescue => exc
     error "Unknown error (#{self.grid_service.to_path}): #{exc.class.name} #{exc.message}"
     error exc.backtrace.join("\n") if exc.backtrace
-    self.grid_service_deploy.set(:deploy_state => :error, :reason => exc.message, :finished_at => Time.now.utc)
+    self.grid_service_deploy.set(:deploy_state => :error, :reason => exc.message)
     false
   ensure
-    ping_subscription.terminate if ping_subscription
-    self.grid_service.set_state('running')
+    self.grid_service_deploy.set(:finished_at => Time.now.utc)
   end
 
   # @param [Integer] total_instances
@@ -113,17 +109,6 @@ class GridServiceDeployer
     end
     if deploy_futures.any?{|f| f.ready? && f.value == false}
       raise DeployError.new("halting deploy of #{self.grid_service.to_path}, one or more instances failed")
-    end
-  end
-
-  # @return [MongoPubsub::Subscription]
-  def subscribe_to_ping
-    channel = "grid_service_deployer:#{grid_service.id}"
-    MongoPubsub.subscribe(channel) do |event|
-      event_name = event['event'].to_s
-      if event_name == 'ping'.freeze
-        MongoPubsub.publish(channel, {event: 'pong'.freeze})
-      end
     end
   end
 

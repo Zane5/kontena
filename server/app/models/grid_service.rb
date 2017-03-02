@@ -116,8 +116,12 @@ class GridService
   end
 
   # @return [Boolean]
-  def deploying?
-    self.state == 'deploying'
+  def deploying?(ignore: nil)
+    scope = self.grid_service_deploys.where(
+      :created_at.gt => 10.minutes.ago, :started_at.ne => nil, :finished_at => nil
+    )
+    scope = scope.where(:_id.ne => ignore) if ignore
+    scope.count > 0
   end
 
   # @return [Boolean]
