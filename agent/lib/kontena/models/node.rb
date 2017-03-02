@@ -5,6 +5,7 @@ class Node
               :updated_at,
               :name,
               :labels,
+              :overlay_ip,
               :peer_ips,
               :node_number,
               :initial_member,
@@ -17,6 +18,7 @@ class Node
     @updated_at = data['updated_at']
     @name = data['name']
     @labels = data['labels']
+    @overlay_ip = data['overlay_ip']
     @peer_ips = data['peer_ips']
     @node_number = data['node_number']
     @initial_member = data['initial_member']

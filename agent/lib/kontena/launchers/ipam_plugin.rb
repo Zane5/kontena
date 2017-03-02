@@ -30,15 +30,18 @@ module Kontena::Launchers
       info "ipam image pulled: #{@image_name}"
     end
 
+    # @param [String] topic
+    # @param [Node] node
     def on_network_start(topic, node)
       info "network started, launching ipam..."
       async.start(node)
     end
 
+    # @param [Node] node
     def start(node)
       create_container(@image_name, node)
       wait(message: "IPAM running") { running? }
-      Celluloid::Notifications.publish('ipam:start', info)
+      Celluloid::Notifications.publish('ipam:start', node)
     end
 
     def image_exists?
@@ -85,7 +88,7 @@ module Kontena::Launchers
           "NODE_ID=#{node.node_number}",
           "LOG_LEVEL=#{ENV['LOG_LEVEL'] || 1}",
           "ETCD_ENDPOINT=http://127.0.0.1:2379",
-          "KONTENA_IPAM_SUPERNET=#{info['grid']['supernet']}",
+          "KONTENA_IPAM_SUPERNET=#{node.grid['supernet']}",
         ],
         'HostConfig' => {
           'NetworkMode' => 'host',

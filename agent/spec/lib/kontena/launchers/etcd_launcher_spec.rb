@@ -318,7 +318,7 @@ describe Kontena::Launchers::Etcd do
         allow(etcd_container).to receive(:id).and_return('12345')
         expect(subject.wrapped_object).to receive(:publish).with('dns:add', {id: etcd_container.id, ip: '10.81.0.2', name: 'etcd.kontena.local'})
 
-        subject.create_container('etcd', node_info)
+        subject.create_container('etcd', node)
       end
     end
   end

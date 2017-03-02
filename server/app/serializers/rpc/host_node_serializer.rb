@@ -7,6 +7,7 @@ module Rpc
     attribute :updated_at
     attribute :name
     attribute :labels
+    attribute :overlay_ip
     attribute :peer_ips
     attribute :node_number
     attribute :initial_member

@@ -112,7 +112,7 @@ module Kontena::Launchers
       name = "node-#{node.node_number}"
       grid_name = node.grid['name']
       docker_ip = docker_gateway
-      initial_cluster = initial_cluster(info['grid'])
+      initial_cluster = initial_cluster(node.grid)
 
       cmd = [
         '--name', name, '--data-dir', '/var/lib/etcd',
