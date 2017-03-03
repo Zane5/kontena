@@ -32,14 +32,18 @@ class GridServiceSchedulerWorker
 
   def perform(service_deploy)
     unless service_deploy.grid_service.deploying?(ignore: service_deploy.id)
-      self.deployer(service_deploy).deploy
-      self.deploy_dependant_services(service_deploy.grid_service)
+      deploy(service_deploy)
     else
       info "delaying #{service_deploy.grid_service.to_path} deploy because there is another deploy in progress"
       after(30) {
         service_deploy.set(:started_at => nil)
       }
     end
+  end
+
+  def deploy(service_deploy)
+    self.deployer(service_deploy).deploy
+    self.deploy_dependant_services(service_deploy.grid_service)
   end
 
   def deploy_dependant_services(grid_service)
