@@ -14,7 +14,6 @@ module Kontena::LoadBalancers
     def initialize
       @etcd = Etcd.client(host: self.class.gateway, port: 2379)
       subscribe('lb:ensure_config', :on_ensure_config)
-      subscribe('lb:remove_config', :on_remove_config)
       subscribe('lb:remove_service', :on_remove_service)
       info 'initialized'
     end
@@ -79,18 +78,14 @@ module Kontena::LoadBalancers
       error exc.backtrace.join("\n") if exc.backtrace
     end
 
-    # @param [Docker::Container] container
-    def remove_config(container)
-      name = container.labels['io.kontena.load_balancer.name']
-      service_name = container.service_name_for_lb
-      mode = container.env_hash['KONTENA_LB_MODE'] || 'http'
-      info "un-registering #{service_name} from load balancer #{name} (#{mode})"
-      if mode == 'http'
-        etcd_path = "#{ETCD_PREFIX}/#{name}/services/#{service_name}"
-      else
-        etcd_path = "#{ETCD_PREFIX}/#{name}/tcp-services/#{service_name}"
+    # @param [String] lb_name
+    # @param [String] service_name
+    def remove_config(lb_name, service_name)
+      info "un-registering #{service_name} from load balancer #{lb_name}"
+      %w(services tcp-services).each do |serv|
+        etcd_path = "#{ETCD_PREFIX}/#{lb_name}/#{serv}/#{service_name}"
+        rmdir(etcd_path)
       end
-      rmdir(etcd_path)
     rescue => exc
       error "#{exc.class.name}: #{exc.message}"
     end

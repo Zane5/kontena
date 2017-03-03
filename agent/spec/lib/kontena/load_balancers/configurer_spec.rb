@@ -27,9 +27,6 @@ describe Kontena::LoadBalancers::Configurer do
     it 'starts to listen container events' do
       expect(subject.wrapped_object).to receive(:ensure_config).once.with(event)
       Celluloid::Notifications.publish('lb:ensure_config', event)
-
-      expect(subject.wrapped_object).to receive(:remove_config).once.with(event)
-      Celluloid::Notifications.publish('lb:remove_config', event)
       sleep 0.05
     end
   end
@@ -144,17 +141,12 @@ describe Kontena::LoadBalancers::Configurer do
   end
 
   describe '#remove_config' do
-    it 'removes http config from etcd' do
+    it 'removes config from etcd' do
       expect(subject.wrapped_object).to receive(:rmdir).
-        with("#{etcd_prefix}/lb/services/test-api")
-      subject.remove_config(container)
-    end
-
-    it 'removes tcp config from etcd' do
-      container.env_hash['KONTENA_LB_MODE'] = 'tcp'
+        with("#{etcd_prefix}/lb/services/test-api").once
       expect(subject.wrapped_object).to receive(:rmdir).
-        with("#{etcd_prefix}/lb/tcp-services/test-api")
-      subject.remove_config(container)
+        with("#{etcd_prefix}/lb/tcp-services/test-api").once
+      subject.remove_config('lb', 'test-api')
     end
   end
 
