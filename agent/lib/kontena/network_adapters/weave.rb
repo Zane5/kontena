@@ -278,10 +278,10 @@ module Kontena::NetworkAdapters
       end
     end
 
-    # @param [Hash] info
-    def post_start(info)
-      grid_subnet = IPAddr.new(info['grid']['subnet'])
-      overlay_ip = info['overlay_ip']
+    # @param [Node] node
+    def post_start(node)
+      grid_subnet = IPAddr.new(node.grid['subnet'])
+      overlay_ip = node.overlay_ip
 
       if grid_subnet && overlay_ip
         weave_cidr = "#{overlay_ip}/#{grid_subnet.prefixlen}"
