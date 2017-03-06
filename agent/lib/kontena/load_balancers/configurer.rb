@@ -22,10 +22,6 @@ module Kontena::LoadBalancers
       self.ensure_config(event)
     end
 
-    def on_remove_config(topic, event)
-      self.remove_config(event)
-    end
-
     def on_remove_service(topic, event)
       self.remove_service(event)
     end
