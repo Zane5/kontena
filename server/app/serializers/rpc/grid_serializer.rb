@@ -6,6 +6,7 @@ module Rpc
     attribute :name
     attribute :initial_size
     attribute :trusted_subnets
+    attribute :subnet
 
     def id
       object.to_path
