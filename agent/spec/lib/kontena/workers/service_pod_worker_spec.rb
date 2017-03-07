@@ -4,7 +4,11 @@ describe Kontena::Workers::ServicePodWorker do
   include RpcClientMocks
 
   let(:node) { Node.new('id' => 'aa') }
-  let(:service_pod) { Kontena::Models::ServicePod.new('id' => 'foo/2', 'instance_number' => 2) }
+  let(:service_pod) do
+    Kontena::Models::ServicePod.new(
+      'id' => 'foo/2', 'instance_number' => 2, 'updated_at' => Time.now.to_s
+    )
+  end
   let(:subject) { described_class.new(node, service_pod) }
 
   before(:each) { Celluloid.boot }
@@ -27,12 +31,15 @@ describe Kontena::Workers::ServicePodWorker do
       container = double(:container, :running? => false, :restarting? => false)
       allow(subject.wrapped_object).to receive(:get_container).and_return(container)
       allow(service_pod).to receive(:running?).and_return(true)
-      expect(subject.wrapped_object).to receive(:ensure_running)
+      expect(subject.wrapped_object).to receive(:ensure_started)
       subject.ensure_desired_state
     end
 
-    it 'calls ensure_running if service_revs do not match' do
-      container = double(:container, :running? => false, :restarting? => false, :service_rev => 2)
+    it 'calls ensure_running if updated_at is newer than container' do
+      container = double(:container,
+        :running? => true, :restarting? => false,
+        :info => { 'Created' => (Time.now - 30).to_s }
+      )
       allow(subject.wrapped_object).to receive(:get_container).and_return(container)
       allow(service_pod).to receive(:running?).and_return(true)
       allow(service_pod).to receive(:service_rev).and_return(1)

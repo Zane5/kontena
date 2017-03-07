@@ -1,4 +1,5 @@
 require_relative '../service_pods/creator'
+require_relative '../service_pods/starter'
 require_relative '../service_pods/stopper'
 require_relative '../service_pods/terminator'
 
@@ -39,9 +40,8 @@ module Kontena::Workers
           ensure_running
         elsif service_container && service_pod.running? && !service_container.running?
           info "starting #{service_pod.name}"
-          ensure_running
-        elsif service_pod.running? && (service_container && service_container.service_revision != service_pod.service_revision)
-          info "#{service_container.service_revision}:#{service_pod.service_revision}"
+          ensure_started
+        elsif service_pod.running? && (service_container && service_container_outdated?(service_container, service_pod))
           info "re-creating #{service_pod.name}"
           ensure_running
         elsif service_pod.stopped? && (service_container && service_container.running?)
@@ -66,6 +66,12 @@ module Kontena::Workers
       Kontena::ServicePods::Creator.new(service_pod).perform
     end
 
+    def ensure_started
+      Kontena::ServicePods::Starter.new(
+        service_pod.service_id, service_pod.instance_number
+      ).perform
+    end
+
     def ensure_stopped
       Kontena::ServicePods::Stopper.new(
         service_pod.service_id, service_pod.instance_number
@@ -76,6 +82,13 @@ module Kontena::Workers
       Kontena::ServicePods::Terminator.new(
         service_pod.service_id, service_pod.instance_number
       ).perform
+    end
+
+    def service_container_outdated?(service_container, service_pod)
+      creator = Kontena::ServicePods::Creator.new(service_pod)
+      creator.container_outdated?(service_container) ||
+        creator.labels_outdated?(service_pod.labels, service_container) ||
+          creator.recreate_service_container?(service_container)
     end
 
     # @return [String]
