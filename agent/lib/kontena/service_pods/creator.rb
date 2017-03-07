@@ -54,7 +54,7 @@ module Kontena
         if service_container.load_balanced? && service_container.instance_number == 1
           Celluloid::Notifications.publish('lb:ensure_config', service_container)
         elsif !service_container.load_balanced? && service_container.instance_number == 1
-          Celluloid::Notifications.publish('lb:remove_service', service_container)
+          Celluloid::Notifications.publish('lb:remove_config', service_container.service_name_for_lb)
         end
 
         service_container.start

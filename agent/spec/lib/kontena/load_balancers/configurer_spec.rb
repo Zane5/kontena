@@ -140,17 +140,7 @@ describe Kontena::LoadBalancers::Configurer do
     end
   end
 
-  describe '#remove_config' do
-    it 'removes config from etcd' do
-      expect(subject.wrapped_object).to receive(:rmdir).
-        with("#{etcd_prefix}/lb/services/test-api").once
-      expect(subject.wrapped_object).to receive(:rmdir).
-        with("#{etcd_prefix}/lb/tcp-services/test-api").once
-      subject.remove_config('lb', 'test-api')
-    end
-  end
-
-  describe "#remove_service" do
+  describe "#remove_config" do
     it 'removes service from null stacked lbs' do
       expect(subject.wrapped_object).to receive(:lsdir).
         and_return(['/kontena/haproxy/lb1', '/kontena/haproxy/lb2'])
@@ -167,7 +157,7 @@ describe Kontena::LoadBalancers::Configurer do
         with("#{etcd_prefix}/lb2/services/test-api")
       expect(subject.wrapped_object).to receive(:rmdir).
         with("#{etcd_prefix}/lb2/tcp-services/test-api")
-      subject.remove_service(container)
+      subject.remove_config(container.service_name_for_lb)
     end
 
     it 'removes service from stacked lbs' do
@@ -200,7 +190,7 @@ describe Kontena::LoadBalancers::Configurer do
         with("#{etcd_prefix}/stack2/lb2/services/test-api")
       expect(subject.wrapped_object).to receive(:rmdir).
         with("#{etcd_prefix}/stack2/lb2/tcp-services/test-api")
-      subject.remove_service(container)
+      subject.remove_config(container.service_name_for_lb)
     end
 
     it 'removes service from stacked and un-stacked lbs' do
@@ -228,7 +218,7 @@ describe Kontena::LoadBalancers::Configurer do
         with("#{etcd_prefix}/lb2/services/test-api")
       expect(subject.wrapped_object).to receive(:rmdir).
         with("#{etcd_prefix}/lb2/tcp-services/test-api")
-      subject.remove_service(container)
+      subject.remove_config(container.service_name_for_lb)
     end
   end
 end

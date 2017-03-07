@@ -101,6 +101,18 @@ describe Kontena::Models::ServicePod do
     end
   end
 
+  describe '#lb_name' do
+    it 'returns correct name for default stack' do
+      subject.labels['io.kontena.stack.name'] = nil
+      expect(subject.lb_name).to eq('redis-cache')
+    end
+
+    it 'returns correct name for non-default stack' do
+      subject.labels['io.kontena.stack.name'] = 'foobar'
+      expect(subject.lb_name).to eq('foobar-redis-cache')
+    end
+  end
+
   describe '#running?' do
     it 'returns true if desired_state running' do
       allow(subject).to receive(:desired_state).and_return('running')

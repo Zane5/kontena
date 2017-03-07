@@ -129,6 +129,17 @@ module Kontena
         self.labels['io.kontena.stack.name']
       end
 
+      # @return [String]
+      def lb_name
+        return self.labels['io.kontena.service.name'] if self.default_stack?
+        "#{self.stack_name}-#{self.labels['io.kontena.service.name']}"
+      end
+
+      # @return [Boolean]
+      def default_stack?
+        self.stack_name.nil? || self.stack_name.to_s == 'null'.freeze
+      end
+
       # @return [Hash]
       def service_config
         docker_opts = {

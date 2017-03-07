@@ -74,22 +74,8 @@ module Kontena::LoadBalancers
       error exc.backtrace.join("\n") if exc.backtrace
     end
 
-    # @param [String] lb_name
     # @param [String] service_name
-    def remove_config(lb_name, service_name)
-      info "un-registering #{service_name} from load balancer #{lb_name}"
-      %w(services tcp-services).each do |serv|
-        etcd_path = "#{ETCD_PREFIX}/#{lb_name}/#{serv}/#{service_name}"
-        rmdir(etcd_path)
-      end
-    rescue => exc
-      error "#{exc.class.name}: #{exc.message}"
-    end
-
-
-    # @param [Docker::Container] container
-    def remove_service(container)
-      service_name = container.service_name_for_lb
+    def remove_config(service_name)
       lsdir(ETCD_PREFIX).each do |key|
         if key_exists?("#{key}/services") || key_exists?("#{key}/tcp-services")
           # un-stacked lb
@@ -108,8 +94,6 @@ module Kontena::LoadBalancers
     rescue => exc
       error "#{exc.class.name}: #{exc.message}"
     end
-
-
 
     # @param [String] key
     # @param [String, NilClass] value

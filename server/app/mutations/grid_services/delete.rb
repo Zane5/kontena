@@ -30,14 +30,16 @@ module GridServices
     def notify_lb_remove
       lb = self.grid_service.linked_to_load_balancers[0]
       return unless lb
-      node = self.grid_service.grid_service_instances.select{ |i| i.host_node.connected? }
-      return unless node
+      service_instance = self.grid_service.grid_service_instances.to_a.find { |i|
+        i.host_node && i.host_node.connected?
+      }
+      return unless service_instance
 
       lb_name = lb.qualified_name
-      service_name = service.name_with_stack
-      if node
-        RpcClient.new(node.node_id).request('/load_balancers/remove_service', lb_name, service_name)
-      end
+      service_pod = Rpc::ServicePodSerializer.new(service_instance).to_hash
+      RpcClient.new(service_instance.host_node.node_id).request(
+        '/load_balancers/remove_service', lb_name, service_pod
+      )
     end
   end
 end
