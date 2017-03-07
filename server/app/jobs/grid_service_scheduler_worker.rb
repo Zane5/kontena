@@ -15,9 +15,7 @@ class GridServiceSchedulerWorker
   end
 
   def check_deploy_queue
-    service_deploy = GridServiceDeploy.where(started_at: nil)
-      .asc(:created_at)
-      .find_and_modify({:$set => {started_at: Time.now.utc}}, {new: true})
+    service_deploy = fetch_deploy_item
     return unless service_deploy
 
     with_dlock("check_deploy_queue:#{service_deploy.grid_service_id}", 10) do
@@ -28,6 +26,15 @@ class GridServiceSchedulerWorker
         service_deploy.destroy
       end
     end
+  end
+
+  # @return [GridServiceDeploy, NilClass]
+  def fetch_deploy_item
+    GridServiceDeploy.where(started_at: nil)
+      .asc(:created_at)
+      .find_and_modify({:$set => {started_at: Time.now.utc}}, {new: true})
+  rescue Moped::Errors::OperationFailure
+    nil
   end
 
   def perform(service_deploy)
